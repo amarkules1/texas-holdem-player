@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Texas Hold'em GTO AI Advisor</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="app-background"></div>
+
+    <header class="navbar">
+        <div class="logo-container">
+            <span class="logo-icon">♠</span>
+            <div class="logo-text">
+                <h1>HOLD'EM AI ADVISOR</h1>
+                <span class="subtitle">Powered by <code>texas-hold-em-utils</code> &amp; Deep Reinforcement Learning</span>
+            </div>
+        </div>
+        <div class="status-pill">
+            <span class="pulse-dot"></span>
+            <span>GTO Model Active</span>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Preset Scenario Quick Bar -->
+        <section class="preset-section">
+            <span class="preset-label">Quick Scenarios:</span>
+            <div id="presetContainer" class="preset-chips">
+                <!-- Preset chips rendered via JS -->
+            </div>
+        </section>
+
+        <div class="main-grid">
+            <!-- Left Panel: Scenario Configuration -->
+            <section class="card-panel config-panel">
+                <div class="panel-header">
+                    <h2><span class="icon">🎮</span> Scenario Builder</h2>
+                    <button id="resetBtn" class="btn-text">Reset All</button>
+                </div>
+
+                <!-- Hole Cards Section -->
+                <div class="form-group">
+                    <label class="section-label">Hole Cards (2 Cards)</label>
+                    <div class="cards-picker-row" id="holeCardsRow">
+                        <div class="card-slot empty" id="hole0" onclick="openCardPicker('hole', 0)">
+                            <span class="plus-icon">+</span>
+                            <span class="slot-desc">Card 1</span>
+                        </div>
+                        <div class="card-slot empty" id="hole1" onclick="openCardPicker('hole', 1)">
+                            <span class="plus-icon">+</span>
+                            <span class="slot-desc">Card 2</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Community Cards Section -->
+                <div class="form-group">
+                    <div class="label-with-action">
+                        <label class="section-label">Community Cards (Flop, Turn, River)</label>
+                        <button class="btn-xs" onclick="clearCommunityCards()">Clear Board</button>
+                    </div>
+                    <div class="cards-picker-row" id="communityCardsRow">
+                        <div class="card-slot empty" id="comm0" onclick="openCardPicker('comm', 0)">
+                            <span class="slot-stage">Flop 1</span>
+                        </div>
+                        <div class="card-slot empty" id="comm1" onclick="openCardPicker('comm', 1)">
+                            <span class="slot-stage">Flop 2</span>
+                        </div>
+                        <div class="card-slot empty" id="comm2" onclick="openCardPicker('comm', 2)">
+                            <span class="slot-stage">Flop 3</span>
+                        </div>
+                        <div class="card-slot empty" id="comm3" onclick="openCardPicker('comm', 3)">
+                            <span class="slot-stage">Turn</span>
+                        </div>
+                        <div class="card-slot empty" id="comm4" onclick="openCardPicker('comm', 4)">
+                            <span class="slot-stage">River</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Game Table Parameters -->
+                <div class="form-group grid-2">
+                    <div class="input-field">
+                        <label for="potInput">Current Pot ($)</label>
+                        <input type="number" id="potInput" value="150" min="1" step="10">
+                    </div>
+                    <div class="input-field">
+                        <label for="allDayInput">Highest Bet / To Call ($)</label>
+                        <input type="number" id="allDayInput" value="40" min="0" step="5">
+                    </div>
+                </div>
+
+                <div class="form-group grid-2">
+                    <div class="input-field">
+                        <label for="stackInput">Your Stack Size ($)</label>
+                        <input type="number" id="stackInput" value="1000" min="1" step="50">
+                    </div>
+                    <div class="input-field">
+                        <label for="bigBlindInput">Big Blind ($)</label>
+                        <input type="number" id="bigBlindInput" value="20" min="1" step="5">
+                    </div>
+                </div>
+
+                <div class="form-group grid-2">
+                    <div class="input-field">
+                        <label for="positionInput">Seat Position (0=SB, 1=BB, 2=UTG...)</label>
+                        <select id="positionInput">
+                            <option value="0">Position 0 (Small Blind)</option>
+                            <option value="1">Position 1 (Big Blind)</option>
+                            <option value="2" selected>Position 2 (Early / UTG)</option>
+                            <option value="3">Position 3 (Middle)</option>
+                            <option value="4">Position 4 (Cutoff)</option>
+                            <option value="5">Position 5 (Button)</option>
+                        </select>
+                    </div>
+                    <div class="input-field">
+                        <label for="playerCtInput">Total Players at Table</label>
+                        <select id="playerCtInput">
+                            <option value="2">2 Players (Heads Up)</option>
+                            <option value="3">3 Players</option>
+                            <option value="4">4 Players</option>
+                            <option value="6" selected>6 Players (6-Max)</option>
+                            <option value="9">9 Players (Full Ring)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button id="analyzeBtn" class="btn-primary" onclick="analyzeScenario()">
+                    <span class="btn-sparkle">✦</span>
+                    ANALYZE SCENARIO &amp; GET MOVE
+                </button>
+            </section>
+
+            <!-- Right Panel: AI Recommendation & Analysis Dashboard -->
+            <section class="card-panel results-panel">
+                <div class="panel-header">
+                    <h2><span class="icon">📊</span> Optimal Strategy Response</h2>
+                    <span id="gameStageBadge" class="badge">PREFLOP</span>
+                </div>
+
+                <!-- Hero Recommendation Box -->
+                <div id="heroBox" class="hero-decision-box action-check">
+                    <div class="hero-header">
+                        <span class="hero-label">RECOMMENDED MOVE</span>
+                        <span id="valueEstimate" class="value-chip">EV: +0.00 BB</span>
+                    </div>
+                    <div class="hero-body">
+                        <h1 id="recommendedActionText">RAISE SMALL</h1>
+                        <div id="betAmountContainer" class="bet-amount-badge">
+                            <span class="bet-label">Suggested Bet:</span>
+                            <span id="recommendedBetText" class="bet-val">$45 chips</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Move Probability Breakdown -->
+                <div class="probs-section">
+                    <h3>Action Probability Distribution</h3>
+                    <div id="probsList" class="probs-list">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- Analytics Grid -->
+                <div class="analytics-section">
+                    <h3>Statistical Analysis (via texas_hold_em_utils)</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-title">Expected Win Rate</span>
+                            <span id="winRateVal" class="stat-value text-emerald">--%</span>
+                            <span class="stat-sub">Multi-player estimate</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-title">2-Player Win Rate</span>
+                            <span id="winRate2pVal" class="stat-value">--%</span>
+                            <span class="stat-sub">Heads-up baseline</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-title">Percentile Rank</span>
+                            <span id="percentileVal" class="stat-value text-gold">--th</span>
+                            <span class="stat-sub">Relative hand strength</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-title">Sklansky Group</span>
+                            <span id="sklanskyVal" class="stat-value">Group -</span>
+                            <span class="stat-sub">Starting hand tier</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-title">Ideal Kelly Max</span>
+                            <span id="kellyVal" class="stat-value">--%</span>
+                            <span class="stat-sub">Optimal stack ratio</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-title">Pot Odds</span>
+                            <span id="potOddsVal" class="stat-value">--%</span>
+                            <span class="stat-sub">Required equity to call</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Card Selector Modal -->
+    <div id="cardModal" class="modal-overlay" onclick="closeModalOnOverlay(event)">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modalTitle">Select Playing Card</h3>
+                <button class="modal-close" onclick="closeCardModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="cardGrid" class="cards-grid">
+                    <!-- 52 Card Grid dynamically created by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
