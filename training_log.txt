@@ -1,0 +1,105 @@
+==========================================================================
+         TEXAS HOLD'EM EXTENDED DIMENSION MODEL TRAINING PIPELINE
+==========================================================================
+Architecture    : Input Dim = 28 (including player count 2-10), Hidden Dim = 256
+Pretraining     : 80% Existing Saved Model + 20% Sprinkled Strategic Baselines
+Self-Play Hands : 4000 Hands (Advantage Actor-Critic RL)
+Save Path       : saved_models/holdem_policy_net.pt
+==========================================================================
+
+Initialized new policy network with 108,166 trainable parameters.
+Loaded existing saved model from saved_models/holdem_policy_net_base.pt (input_dim=24, hidden_dim=128)
+
+============================================================================
+=== Phase 1A: Supervised Pretraining Distillation (15 Epochs) ===
+============================================================================
+
+[Phase 1A] Synthesizing 3000 diverse pretraining decision states...
+           Player count varies from 2-10 (lower counts more common).
+           Teacher targets: 80% existing saved model, 20% sprinkled strategic baselines.
+  Generated  1000/3000 samples ( 33.3%) | Elapsed: 47.1s
+  Generated  2000/3000 samples ( 66.7%) | Elapsed: 94.1s
+  Generated  3000/3000 samples (100.0%) | Elapsed: 140.6s
+Pretrain Epoch [ 1/15] | Policy Loss: 1.1158 | Value Loss: 59.4059 | Action Match:  69.4% | Elapsed:   0.4s
+Pretrain Epoch [ 2/15] | Policy Loss: 0.9467 | Value Loss: 29.1235 | Action Match:  79.3% | Elapsed:   0.8s
+Pretrain Epoch [ 3/15] | Policy Loss: 0.9121 | Value Loss: 17.7574 | Action Match:  82.8% | Elapsed:   1.1s
+Pretrain Epoch [ 4/15] | Policy Loss: 0.8946 | Value Loss: 10.8734 | Action Match:  85.1% | Elapsed:   1.4s
+Pretrain Epoch [ 5/15] | Policy Loss: 0.8833 | Value Loss: 6.6248 | Action Match:  85.8% | Elapsed:   1.7s
+Pretrain Epoch [ 6/15] | Policy Loss: 0.8754 | Value Loss: 4.2822 | Action Match:  86.7% | Elapsed:   2.1s
+Pretrain Epoch [ 7/15] | Policy Loss: 0.8702 | Value Loss: 3.1183 | Action Match:  87.0% | Elapsed:   2.4s
+Pretrain Epoch [ 8/15] | Policy Loss: 0.8682 | Value Loss: 3.0412 | Action Match:  86.8% | Elapsed:   2.7s
+Pretrain Epoch [ 9/15] | Policy Loss: 0.8641 | Value Loss: 2.4789 | Action Match:  88.4% | Elapsed:   3.0s
+Pretrain Epoch [10/15] | Policy Loss: 0.8628 | Value Loss: 2.3472 | Action Match:  88.2% | Elapsed:   3.4s
+Pretrain Epoch [11/15] | Policy Loss: 0.8591 | Value Loss: 2.0625 | Action Match:  89.8% | Elapsed:   3.7s
+Pretrain Epoch [12/15] | Policy Loss: 0.8586 | Value Loss: 1.8927 | Action Match:  89.4% | Elapsed:   4.0s
+Pretrain Epoch [13/15] | Policy Loss: 0.8579 | Value Loss: 2.0569 | Action Match:  90.0% | Elapsed:   4.3s
+Pretrain Epoch [14/15] | Policy Loss: 0.8579 | Value Loss: 2.0708 | Action Match:  89.8% | Elapsed:   4.6s
+Pretrain Epoch [15/15] | Policy Loss: 0.8565 | Value Loss: 1.8392 | Action Match:  90.5% | Elapsed:   5.0s
+
+Phase 1A Pretraining distillation completed successfully!
+
+============================================================================
+=== Phase 1B: Matchplay Pretraining Against Opponent Pool (300 Hands) ===
+    Opponents: 80% Existing Saved Model, 20% Other Baseline Players
+    Table sizes: 2 to 10 players (lower sizes more common)
+============================================================================
+Opponent Pretrain Hand [  50/300] ( 16.7%) | Table:  5p | Win Rate:  24.0% | Net Avg: +6.99 BB/hand | Elapsed: 23.0s
+Opponent Pretrain Hand [ 100/300] ( 33.3%) | Table:  3p | Win Rate:  29.0% | Net Avg: +5.56 BB/hand | Elapsed: 41.9s
+Opponent Pretrain Hand [ 150/300] ( 50.0%) | Table: 10p | Win Rate:  32.0% | Net Avg: +3.54 BB/hand | Elapsed: 57.4s
+Opponent Pretrain Hand [ 200/300] ( 66.7%) | Table:  2p | Win Rate:  33.0% | Net Avg: +3.88 BB/hand | Elapsed: 76.5s
+Opponent Pretrain Hand [ 250/300] ( 83.3%) | Table:  5p | Win Rate:  32.0% | Net Avg: +2.92 BB/hand | Elapsed: 96.9s
+Opponent Pretrain Hand [ 300/300] (100.0%) | Table:  3p | Win Rate:  32.7% | Net Avg: +3.45 BB/hand | Elapsed: 109.9s
+
+Phase 1B Opponent Matchplay completed successfully!
+
+============================================================================
+=== Phase 2: Reinforcement Learning Self-Play Training (4000 Hands) ===
+    All table positions controlled by new policy network (Self-Play).
+    Table size dynamically varies from 2-10 players (lower sizes more common).
+    Advantage Actor-Critic (A2C) updates applied throughout training.
+============================================================================
+[Self-Play Hand  100/4000] (  2.5%) | P0 Win: 27.0% (+0.83 BB/h) | Speed: 2.9 hands/s | ETA: 22m18s | Actions [Fold:27.0% Call:49.6% RaiseSm:14.2% RaiseMed: 7.9% AllIn: 1.3%]
+[Self-Play Hand  200/4000] (  5.0%) | P0 Win: 25.5% (+0.51 BB/h) | Speed: 3.2 hands/s | ETA: 19m36s | Actions [Fold:30.2% Call:50.6% RaiseSm:11.6% RaiseMed: 6.7% AllIn: 0.9%]
+[Self-Play Hand  300/4000] (  7.5%) | P0 Win: 25.0% (+0.46 BB/h) | Speed: 3.4 hands/s | ETA: 18m01s | Actions [Fold:31.8% Call:50.7% RaiseSm:10.9% RaiseMed: 5.8% AllIn: 0.9%]
+[Self-Play Hand  400/4000] ( 10.0%) | P0 Win: 26.0% (+0.36 BB/h) | Speed: 3.4 hands/s | ETA: 17m26s | Actions [Fold:33.0% Call:50.1% RaiseSm:10.9% RaiseMed: 5.3% AllIn: 0.8%]
+[Self-Play Hand  500/4000] ( 12.5%) | P0 Win: 27.0% (+0.20 BB/h) | Speed: 3.4 hands/s | ETA: 17m02s | Actions [Fold:33.4% Call:49.7% RaiseSm:10.9% RaiseMed: 5.1% AllIn: 0.8%]
+[Self-Play Hand  600/4000] ( 15.0%) | P0 Win: 26.0% (-0.13 BB/h) | Speed: 3.4 hands/s | ETA: 16m47s | Actions [Fold:33.6% Call:49.6% RaiseSm:11.3% RaiseMed: 4.8% AllIn: 0.8%]
+[Self-Play Hand  700/4000] ( 17.5%) | P0 Win: 25.4% (-0.15 BB/h) | Speed: 3.4 hands/s | ETA: 16m09s | Actions [Fold:33.9% Call:49.2% RaiseSm:11.3% RaiseMed: 4.8% AllIn: 0.8%]
+[Self-Play Hand  800/4000] ( 20.0%) | P0 Win: 25.2% (-0.22 BB/h) | Speed: 3.4 hands/s | ETA: 15m35s | Actions [Fold:34.1% Call:48.9% RaiseSm:11.4% RaiseMed: 4.9% AllIn: 0.8%]
+[Self-Play Hand  900/4000] ( 22.5%) | P0 Win: 25.8% (-0.31 BB/h) | Speed: 3.4 hands/s | ETA: 15m21s | Actions [Fold:34.2% Call:49.0% RaiseSm:11.3% RaiseMed: 4.7% AllIn: 0.7%]
+[Self-Play Hand 1000/4000] ( 25.0%) | P0 Win: 26.2% (-0.23 BB/h) | Speed: 3.3 hands/s | ETA: 14m57s | Actions [Fold:33.7% Call:49.4% RaiseSm:11.5% RaiseMed: 4.7% AllIn: 0.7%]
+[Self-Play Hand 1100/4000] ( 27.5%) | P0 Win: 26.5% (-0.38 BB/h) | Speed: 3.2 hands/s | ETA: 14m53s | Actions [Fold:33.0% Call:50.4% RaiseSm:11.1% RaiseMed: 4.7% AllIn: 0.7%]
+[Self-Play Hand 1200/4000] ( 30.0%) | P0 Win: 27.0% (-0.35 BB/h) | Speed: 3.2 hands/s | ETA: 14m26s | Actions [Fold:32.7% Call:50.9% RaiseSm:11.0% RaiseMed: 4.7% AllIn: 0.7%]
+[Self-Play Hand 1300/4000] ( 32.5%) | P0 Win: 27.2% (-0.26 BB/h) | Speed: 3.3 hands/s | ETA: 13m43s | Actions [Fold:33.1% Call:50.5% RaiseSm:11.0% RaiseMed: 4.7% AllIn: 0.8%]
+[Self-Play Hand 1400/4000] ( 35.0%) | P0 Win: 27.0% (-0.22 BB/h) | Speed: 3.3 hands/s | ETA: 12m59s | Actions [Fold:33.3% Call:50.2% RaiseSm:10.9% RaiseMed: 4.7% AllIn: 0.8%]
+[Self-Play Hand 1500/4000] ( 37.5%) | P0 Win: 26.7% (-0.20 BB/h) | Speed: 3.4 hands/s | ETA: 12m16s | Actions [Fold:33.6% Call:49.9% RaiseSm:11.0% RaiseMed: 4.7% AllIn: 0.8%]
+[Self-Play Hand 1600/4000] ( 40.0%) | P0 Win: 26.6% (-0.17 BB/h) | Speed: 3.5 hands/s | ETA: 11m33s | Actions [Fold:34.1% Call:49.3% RaiseSm:11.0% RaiseMed: 4.8% AllIn: 0.8%]
+[Self-Play Hand 1700/4000] ( 42.5%) | P0 Win: 26.6% (-0.19 BB/h) | Speed: 3.6 hands/s | ETA: 10m47s | Actions [Fold:34.6% Call:48.6% RaiseSm:11.3% RaiseMed: 4.8% AllIn: 0.7%]
+[Self-Play Hand 1800/4000] ( 45.0%) | P0 Win: 27.2% (-0.18 BB/h) | Speed: 3.7 hands/s | ETA: 10m01s | Actions [Fold:35.1% Call:47.8% RaiseSm:11.6% RaiseMed: 4.8% AllIn: 0.7%]
+[Self-Play Hand 1900/4000] ( 47.5%) | P0 Win: 27.6% (-0.16 BB/h) | Speed: 3.8 hands/s | ETA: 09m19s | Actions [Fold:35.7% Call:47.0% RaiseSm:11.8% RaiseMed: 4.8% AllIn: 0.7%]
+[Self-Play Hand 2000/4000] ( 50.0%) | P0 Win: 28.1% (-0.09 BB/h) | Speed: 3.9 hands/s | ETA: 08m35s | Actions [Fold:36.4% Call:46.1% RaiseSm:11.9% RaiseMed: 4.8% AllIn: 0.7%]
+[Self-Play Hand 2100/4000] ( 52.5%) | P0 Win: 28.2% (+0.02 BB/h) | Speed: 4.0 hands/s | ETA: 07m58s | Actions [Fold:36.9% Call:45.5% RaiseSm:12.1% RaiseMed: 4.8% AllIn: 0.8%]
+[Self-Play Hand 2200/4000] ( 55.0%) | P0 Win: 28.0% (+0.04 BB/h) | Speed: 4.0 hands/s | ETA: 07m24s | Actions [Fold:37.3% Call:44.8% RaiseSm:12.3% RaiseMed: 4.8% AllIn: 0.8%]
+[Self-Play Hand 2300/4000] ( 57.5%) | P0 Win: 28.0% (+0.05 BB/h) | Speed: 4.2 hands/s | ETA: 06m48s | Actions [Fold:37.7% Call:44.1% RaiseSm:12.6% RaiseMed: 4.9% AllIn: 0.8%]
+[Self-Play Hand 2400/4000] ( 60.0%) | P0 Win: 27.9% (+0.01 BB/h) | Speed: 4.2 hands/s | ETA: 06m18s | Actions [Fold:38.2% Call:43.4% RaiseSm:12.8% RaiseMed: 4.9% AllIn: 0.8%]
+[Self-Play Hand 2500/4000] ( 62.5%) | P0 Win: 27.8% (+0.02 BB/h) | Speed: 4.3 hands/s | ETA: 05m48s | Actions [Fold:38.6% Call:42.9% RaiseSm:12.9% RaiseMed: 4.9% AllIn: 0.8%]
+[Self-Play Hand 2600/4000] ( 65.0%) | P0 Win: 27.6% (-0.01 BB/h) | Speed: 4.4 hands/s | ETA: 05m18s | Actions [Fold:39.0% Call:42.3% RaiseSm:13.1% RaiseMed: 4.8% AllIn: 0.8%]
+[Self-Play Hand 2700/4000] ( 67.5%) | P0 Win: 27.7% (-0.00 BB/h) | Speed: 4.5 hands/s | ETA: 04m50s | Actions [Fold:39.3% Call:41.8% RaiseSm:13.4% RaiseMed: 4.8% AllIn: 0.8%]
+[Self-Play Hand 2800/4000] ( 70.0%) | P0 Win: 27.8% (-0.06 BB/h) | Speed: 4.6 hands/s | ETA: 04m23s | Actions [Fold:39.7% Call:41.1% RaiseSm:13.6% RaiseMed: 4.8% AllIn: 0.8%]
+[Self-Play Hand 2900/4000] ( 72.5%) | P0 Win: 27.7% (-0.05 BB/h) | Speed: 4.6 hands/s | ETA: 03m57s | Actions [Fold:40.1% Call:40.6% RaiseSm:13.8% RaiseMed: 4.8% AllIn: 0.8%]
+[Self-Play Hand 3000/4000] ( 75.0%) | P0 Win: 27.7% (-0.08 BB/h) | Speed: 4.7 hands/s | ETA: 03m32s | Actions [Fold:40.5% Call:40.0% RaiseSm:14.0% RaiseMed: 4.8% AllIn: 0.8%]
+[Self-Play Hand 3100/4000] ( 77.5%) | P0 Win: 27.7% (-0.08 BB/h) | Speed: 4.8 hands/s | ETA: 03m08s | Actions [Fold:40.7% Call:39.6% RaiseSm:14.1% RaiseMed: 4.8% AllIn: 0.8%]
+[Self-Play Hand 3200/4000] ( 80.0%) | P0 Win: 27.6% (-0.11 BB/h) | Speed: 4.8 hands/s | ETA: 02m45s | Actions [Fold:41.1% Call:39.1% RaiseSm:14.2% RaiseMed: 4.8% AllIn: 0.8%]
+[Self-Play Hand 3300/4000] ( 82.5%) | P0 Win: 27.5% (-0.10 BB/h) | Speed: 4.9 hands/s | ETA: 02m22s | Actions [Fold:41.5% Call:38.6% RaiseSm:14.2% RaiseMed: 4.9% AllIn: 0.8%]
+[Self-Play Hand 3400/4000] ( 85.0%) | P0 Win: 27.6% (-0.06 BB/h) | Speed: 5.0 hands/s | ETA: 01m59s | Actions [Fold:41.8% Call:38.2% RaiseSm:14.2% RaiseMed: 4.9% AllIn: 0.8%]
+[Self-Play Hand 3500/4000] ( 87.5%) | P0 Win: 27.7% (-0.08 BB/h) | Speed: 5.1 hands/s | ETA: 01m38s | Actions [Fold:42.2% Call:37.8% RaiseSm:14.4% RaiseMed: 4.9% AllIn: 0.8%]
+[Self-Play Hand 3600/4000] ( 90.0%) | P0 Win: 27.6% (-0.09 BB/h) | Speed: 5.1 hands/s | ETA: 01m17s | Actions [Fold:42.6% Call:37.3% RaiseSm:14.5% RaiseMed: 4.8% AllIn: 0.8%]
+[Self-Play Hand 3700/4000] ( 92.5%) | P0 Win: 27.6% (-0.05 BB/h) | Speed: 5.2 hands/s | ETA: 00m57s | Actions [Fold:42.9% Call:36.8% RaiseSm:14.6% RaiseMed: 4.8% AllIn: 0.8%]
+[Self-Play Hand 3800/4000] ( 95.0%) | P0 Win: 27.8% (-0.01 BB/h) | Speed: 5.3 hands/s | ETA: 00m37s | Actions [Fold:43.2% Call:36.5% RaiseSm:14.7% RaiseMed: 4.8% AllIn: 0.8%]
+[Self-Play Hand 3900/4000] ( 97.5%) | P0 Win: 27.7% (-0.02 BB/h) | Speed: 5.4 hands/s | ETA: 00m18s | Actions [Fold:43.6% Call:36.0% RaiseSm:14.7% RaiseMed: 4.8% AllIn: 0.8%]
+[Self-Play Hand 4000/4000] (100.0%) | P0 Win: 27.5% (-0.03 BB/h) | Speed: 5.4 hands/s | ETA: 00m00s | Actions [Fold:43.8% Call:35.8% RaiseSm:14.8% RaiseMed: 4.8% AllIn: 0.8%]
+
+============================================================================
+Self-Play Training Completed: 4000/4000 hands in 737.4s (12.29 mins).
+Final Model successfully saved to: saved_models/holdem_policy_net.pt
+============================================================================
