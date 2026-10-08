@@ -24,11 +24,11 @@ def run_poker_tournament(num_hands=1000, model_path="saved_models/holdem_policy_
     print(f"       TEXAS HOLD'EM ML MODEL TOURNAMENT BENCHMARK ({num_hands} HANDS)    ")
     print("==========================================================================")
 
-    model = HoldemPolicyValueNet()
     if os.path.exists(model_path):
-        model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
-        print(f"Loaded trained model weights from {model_path}")
+        model = HoldemPolicyValueNet.from_checkpoint(model_path)
+        print(f"Loaded trained model weights from {model_path} (input_dim={model.input_dim}, hidden_dim={model.hidden_dim})")
     else:
+        model = HoldemPolicyValueNet()
         print("Using initialized model (untrained/default weights).")
     model.eval()
 

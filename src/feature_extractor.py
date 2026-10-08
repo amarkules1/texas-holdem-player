@@ -32,9 +32,10 @@ def parse_card(card):
 
 class FeatureExtractor:
     """
-    Extracts a 24-dimensional normalized feature vector from any Texas Hold'em game state.
+    Extracts a 28-dimensional normalized feature vector from any Texas Hold'em game state,
+    including table player counts and active player dynamics.
     """
-    FEATURE_DIM = 24
+    FEATURE_DIM = 28
     FEATURE_NAMES = [
         "win_rate", "win_rate_2p", "percentile", "ideal_kelly_max",
         "sklansky_rank_norm", "outs_1card_norm", "outs_2card_norm",
@@ -43,7 +44,8 @@ class FeatureExtractor:
         "relative_position", "active_player_ratio",
         "is_preflop", "is_flop", "is_turn", "is_river",
         "is_suited", "is_pair",
-        "high_card_rank_norm", "low_card_rank_norm", "hand_category_norm"
+        "high_card_rank_norm", "low_card_rank_norm", "hand_category_norm",
+        "player_ct_norm", "active_player_ct_norm", "is_heads_up", "is_short_handed"
     ]
 
     @staticmethod
@@ -168,6 +170,12 @@ class FeatureExtractor:
             except Exception:
                 hand_category_norm = 0.0
 
+        # 9. Table Player Dimensions (varying from 2-10 players)
+        player_ct_norm = float(np.clip((player_ct - 2.0) / 8.0, 0.0, 1.0))
+        active_player_ct_norm = float(np.clip((active_players - 1.0) / 9.0, 0.0, 1.0))
+        is_heads_up = 1.0 if player_ct == 2 or active_players == 2 else 0.0
+        is_short_handed = 1.0 if player_ct <= 6 else 0.0
+
         features = np.array([
             win_rate,
             win_rate_2p,
@@ -192,7 +200,11 @@ class FeatureExtractor:
             is_pair,
             high_card_rank_norm,
             low_card_rank_norm,
-            hand_category_norm
+            hand_category_norm,
+            player_ct_norm,
+            active_player_ct_norm,
+            is_heads_up,
+            is_short_handed
         ], dtype=np.float32)
 
         return features

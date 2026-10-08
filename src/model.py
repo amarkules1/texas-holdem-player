@@ -3,6 +3,8 @@ PyTorch Policy-Value Neural Network Architecture for Texas Hold'em
 Outputs action probabilities and state value estimates.
 """
 
+import os
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -11,7 +13,7 @@ import torch.nn.functional as F
 class HoldemPolicyValueNet(nn.Module):
     """
     Actor-Critic Deep Policy Network for Texas Hold'em.
-    Inputs: 24-dimensional game state feature vector.
+    Inputs: Extended game state feature vector (default: 28 dimensions).
     Outputs:
       - Policy Logits over 5 discrete actions:
           0: FOLD
@@ -19,28 +21,30 @@ class HoldemPolicyValueNet(nn.Module):
           2: RAISE_SMALL
           3: RAISE_MED
           4: RAISE_ALLIN
-      - Value Estimate V(s) (expected payoff / chip return)
+      - Value Estimate V(s) (expected payoff / chip return in BB)
     """
     ACTION_NAMES = ["fold", "check_call", "raise_small", "raise_med", "raise_allin"]
     NUM_ACTIONS = 5
 
-    def __init__(self, input_dim=24, hidden_dim=128):
+    def __init__(self, input_dim=28, hidden_dim=256):
         super(HoldemPolicyValueNet, self).__init__()
         
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
+        intermediate_dim = max(64, hidden_dim // 2)
+        self.intermediate_dim = intermediate_dim
 
-        # Shared Backbone
+        # Shared Deep Backbone with Layer Normalization and GELU
         self.fc1 = nn.Linear(input_dim, hidden_dim)
         self.ln1 = nn.LayerNorm(hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
         self.ln2 = nn.LayerNorm(hidden_dim)
-        self.fc3 = nn.Linear(hidden_dim, 64)
-        self.ln3 = nn.LayerNorm(64)
+        self.fc3 = nn.Linear(hidden_dim, intermediate_dim)
+        self.ln3 = nn.LayerNorm(intermediate_dim)
 
         # Policy & Value Heads
-        self.policy_head = nn.Linear(64, self.NUM_ACTIONS)
-        self.value_head = nn.Linear(64, 1)
+        self.policy_head = nn.Linear(intermediate_dim, self.NUM_ACTIONS)
+        self.value_head = nn.Linear(intermediate_dim, 1)
 
         self._init_weights()
 
@@ -60,6 +64,13 @@ class HoldemPolicyValueNet(nn.Module):
         """
         if x.dim() == 1:
             x = x.unsqueeze(0)
+
+        # Adapt feature dimension if input differs from model input_dim
+        if x.shape[-1] > self.input_dim:
+            x = x[..., :self.input_dim]
+        elif x.shape[-1] < self.input_dim:
+            pad = torch.zeros(*x.shape[:-1], self.input_dim - x.shape[-1], dtype=x.dtype, device=x.device)
+            x = torch.cat([x, pad], dim=-1)
 
         h = F.gelu(self.ln1(self.fc1(x)))
         h = F.gelu(self.ln2(self.fc2(h)))
@@ -119,10 +130,27 @@ class HoldemPolicyValueNet(nn.Module):
                 action_idx = int(probs.argmax())
             else:
                 # Sample action from probability distribution
-                probs_clean = probs / probs.sum()
+                probs_clean = np.clip(probs, 0.0, 1.0)
+                p_sum = probs_clean.sum()
+                if p_sum > 0:
+                    probs_clean = probs_clean / p_sum
+                else:
+                    probs_clean = np.ones(len(probs_clean)) / len(probs_clean)
                 action_idx = int(np.random.choice(len(probs_clean), p=probs_clean))
 
             action_name = self.ACTION_NAMES[action_idx]
             prob_dict = {name: float(prob) for name, prob in zip(self.ACTION_NAMES, probs)}
 
             return action_idx, action_name, prob_dict
+
+    @classmethod
+    def from_checkpoint(cls, checkpoint_path, map_location="cpu"):
+        """
+        Instantiates a HoldemPolicyValueNet with dimensions matched to saved weights.
+        """
+        state_dict = torch.load(checkpoint_path, map_location=map_location)
+        # Infer dimensions from fc1 weight: shape [hidden_dim, input_dim]
+        hidden_dim, input_dim = state_dict["fc1.weight"].shape
+        model = cls(input_dim=input_dim, hidden_dim=hidden_dim)
+        model.load_state_dict(state_dict)
+        return model

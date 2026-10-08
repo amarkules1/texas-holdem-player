@@ -16,10 +16,14 @@ class MLHoldemPlayer(Player):
     and selects optimal moves using HoldemPolicyValueNet.
     """
 
-    def __init__(self, position, chips=1000, model=None, deterministic=False, temperature=1.0):
+    def __init__(self, position, chips=1000, model=None, deterministic=False, temperature=1.0, total_players=None, sample_size=50, record_history=False):
         super().__init__(position, chips)
         self.deterministic = deterministic
         self.temperature = temperature
+        self.total_players = total_players
+        self.sample_size = sample_size
+        self.record_history = record_history
+        self.history = []
         
         if model is None:
             self.model = HoldemPolicyValueNet()
@@ -27,6 +31,10 @@ class MLHoldemPlayer(Player):
             self.model = model
             
         self.model.eval()
+
+    def clear_history(self):
+        """Clears recorded decision history."""
+        self.history = []
 
     def get_action_mask(self, to_call, chips):
         """
@@ -65,7 +73,9 @@ class MLHoldemPlayer(Player):
         """
         to_call = max(0, all_day - self.round_bet)
 
-        # 1. Extract 24-dim features using texas_hold_em_utils
+        # 1. Extract features using texas_hold_em_utils
+        total_p = self.total_players if self.total_players is not None else player_ct
+        active_p = player_ct
         features = FeatureExtractor.extract_features(
             hole_cards=self.hand_of_two.cards,
             community_cards=community_cards,
@@ -76,9 +86,12 @@ class MLHoldemPlayer(Player):
             chips=self.chips,
             big_blind=big_blind,
             position=self.position,
-            player_ct=player_ct
+            player_ct=total_p,
+            active_players=active_p,
+            sample_size=self.sample_size
         )
-        state_tensor = torch.tensor(features, dtype=torch.float32)
+        input_dim = getattr(self.model, "input_dim", len(features))
+        state_tensor = torch.tensor(features[:input_dim], dtype=torch.float32)
         action_mask = self.get_action_mask(to_call, self.chips)
 
         # 2. Predict action and probabilities using Neural Network
@@ -88,6 +101,14 @@ class MLHoldemPlayer(Player):
             deterministic=self.deterministic,
             temperature=self.temperature
         )
+
+        if self.record_history:
+            self.history.append({
+                "state": state_tensor.detach(),
+                "action_idx": action_idx,
+                "mask": action_mask.detach(),
+                "round_num": round_num
+            })
 
         # 3. Execute chosen action into game chip amounts
         if action_idx == 0:  # FOLD
@@ -137,6 +158,8 @@ class MLHoldemPlayer(Player):
         :return: dict mapping action names to probabilities.
         """
         to_call = max(0, all_day - self.round_bet)
+        total_p = self.total_players if self.total_players is not None else player_ct
+        active_p = player_ct
         features = FeatureExtractor.extract_features(
             hole_cards=self.hand_of_two.cards,
             community_cards=community_cards,
@@ -147,9 +170,11 @@ class MLHoldemPlayer(Player):
             chips=self.chips,
             big_blind=big_blind,
             position=self.position,
-            player_ct=player_ct
+            player_ct=total_p,
+            active_players=active_p
         )
-        state_tensor = torch.tensor(features, dtype=torch.float32)
+        input_dim = getattr(self.model, "input_dim", len(features))
+        state_tensor = torch.tensor(features[:input_dim], dtype=torch.float32)
         action_mask = self.get_action_mask(to_call, self.chips)
 
         _, _, prob_dict = self.model.predict_action(

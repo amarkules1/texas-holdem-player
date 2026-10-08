@@ -16,10 +16,11 @@ class HoldemPredictor:
     """
 
     def __init__(self, model_path=None):
-        self.model = HoldemPolicyValueNet()
         if model_path and os.path.exists(model_path):
-            self.model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
-            print(f"Loaded trained weights from {model_path}")
+            self.model = HoldemPolicyValueNet.from_checkpoint(model_path)
+            print(f"Loaded trained weights from {model_path} (input_dim={self.model.input_dim}, hidden_dim={self.model.hidden_dim})")
+        else:
+            self.model = HoldemPolicyValueNet()
         self.model.eval()
 
     def predict_scenario(
@@ -76,10 +77,10 @@ class HoldemPredictor:
             round_bet=round_bet,
             chips=stack,
             big_blind=big_blind,
-            position=position,
             player_ct=player_ct
         )
-        state_tensor = torch.tensor(features, dtype=torch.float32)
+        input_dim = getattr(self.model, "input_dim", len(features))
+        state_tensor = torch.tensor(features[:input_dim], dtype=torch.float32)
 
         # 2. Build action mask
         mask = [1.0, 1.0, 1.0, 1.0, 1.0]

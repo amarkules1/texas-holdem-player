@@ -1,5 +1,5 @@
 """
-Unit tests for FeatureExtractor module.
+Unit tests for FeatureExtractor module with expanded dimensions.
 """
 
 import numpy as np
@@ -36,7 +36,7 @@ def test_extract_features_preflop():
     )
 
     assert isinstance(feats, np.ndarray)
-    assert feats.shape == (24,)
+    assert feats.shape == (28,)
     assert not np.isnan(feats).any()
     assert not np.isinf(feats).any()
 
@@ -45,6 +45,34 @@ def test_extract_features_preflop():
     percentile = feats[2]
     assert win_rate > 0.25
     assert percentile > 0.90
+
+    # Check player count dimensions
+    player_ct_norm = feats[24]
+    assert np.isclose(player_ct_norm, (6 - 2) / 8.0)
+    assert feats[27] == 1.0  # is_short_handed for 6 players
+
+
+def test_extract_features_varying_player_counts():
+    # 2 players (heads up)
+    feats_2p = FeatureExtractor.extract_features(
+        hole_cards=["Ah", "Kh"],
+        community_cards=[],
+        player_ct=2
+    )
+    assert feats_2p.shape == (28,)
+    assert feats_2p[24] == 0.0  # (2-2)/8
+    assert feats_2p[26] == 1.0  # is_heads_up
+
+    # 10 players (full table)
+    feats_10p = FeatureExtractor.extract_features(
+        hole_cards=["Ah", "Kh"],
+        community_cards=[],
+        player_ct=10
+    )
+    assert feats_10p.shape == (28,)
+    assert feats_10p[24] == 1.0  # (10-2)/8
+    assert feats_10p[26] == 0.0  # not heads up
+    assert feats_10p[27] == 0.0  # not short-handed (> 6)
 
 
 def test_extract_features_flop():
@@ -61,7 +89,7 @@ def test_extract_features_flop():
         player_ct=4
     )
 
-    assert feats.shape == (24,)
+    assert feats.shape == (28,)
     assert not np.isnan(feats).any()
     outs_1card = feats[5] * 47.0
     assert outs_1card > 0
